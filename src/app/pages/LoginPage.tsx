@@ -1,25 +1,64 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { UserCheck, GraduationCap } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { CrisisButton } from "../components/CrisisButton";
 import { motion } from "motion/react";
+import { supabase } from "../../supabaseClient";
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const [role, setRole] = useState<"user" | "mentor">("user");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate login
-    localStorage.setItem("transconnect_user", JSON.stringify({
-      name: "User",
-      pronouns: "They/Them",
-    }));
-    navigate("/dashboard");
+    setLoading(true);
+    setErrorMsg("");
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    if (error) {
+      if (error.message.toLowerCase().includes("email not confirmed")) {
+        setErrorMsg(
+          "Your email hasn't been confirmed yet. Please check your inbox for the confirmation link."
+        );
+      } else {
+        setErrorMsg("Login failed: " + error.message);
+      }
+      setLoading(false);
+      return;
+    }
+
+    if (data.user) {
+      const meta = data.user.user_metadata;
+      if (meta?.chosen_name) {
+        await supabase.from("profiles").upsert({
+          id: data.user.id,
+          email: data.user.email,
+          chosen_name: meta.chosen_name,
+          pronouns: meta.pronouns,
+          identities: meta.identities,
+          looking_for: meta.looking_for,
+          role: meta.role || role,
+        });
+      }
+
+      const profileRole = meta?.role || role;
+      navigate(profileRole === "mentor" ? "/mentor-dashboard" : "/dashboard");
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   return (
@@ -33,79 +72,127 @@ export function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full bg-white rounded-3xl shadow-xl p-8 lg:p-10"
         >
+          {/* Role Toggle */}
+          <div className="flex gap-2 mb-8 bg-gray-100 rounded-2xl p-1.5">
+            <button
+              type="button"
+              onClick={() => setRole("user")}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all ${
+                role === "user"
+                  ? "bg-white text-[#7c3aed] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <UserCheck className="w-4 h-4" />
+              User Login
+            </button>
+            <button
+              type="button"
+              onClick={() => setRole("mentor")}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all ${
+                role === "mentor"
+                  ? "bg-white text-[#7c3aed] shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              Mentor Login
+            </button>
+          </div>
+
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl text-[#1e1b4b] mb-2">Welcome Back</h1>
-            <p className="text-gray-600">Log in to your safe space</p>
+            <h1 className="text-3xl text-[#1e1b4b] mb-2">
+              {role === "mentor" ? "Welcome Back, Mentor" : "Welcome Back"}
+            </h1>
+            <p className="text-gray-600">
+              {role === "mentor"
+                ? "Log in to manage your mentorship"
+                : "Log in to your safe space"}
+            </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Email */}
             <div>
-              <label className="block text-[#1e1b4b] mb-2">Email or Phone</label>
+              <label className="block text-[#1e1b4b] mb-2">Email</label>
               <input
-                type="text"
+                type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] bg-white"
                 placeholder="your.email@example.com"
                 required
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-[#1e1b4b] mb-2">Password</label>
               <input
                 type="password"
                 value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] bg-white"
                 placeholder="Enter your password"
                 required
               />
             </div>
 
-            {/* Remember Me */}
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.rememberMe}
-                  onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, rememberMe: e.target.checked })
+                  }
                   className="w-4 h-4 text-[#7c3aed] border-gray-300 rounded focus:ring-[#7c3aed]"
                 />
                 <span className="text-sm text-gray-600">Remember me</span>
               </label>
-              <Link to="/forgot-password" className="text-sm text-[#7c3aed] hover:underline">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-[#7c3aed] hover:underline"
+              >
                 Forgot Password?
               </Link>
             </div>
 
-            {/* Safety Note */}
             <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
               <p className="text-xs text-amber-800">
-                <strong>Safety Tip:</strong> "Remember me" is OFF by default for your safety on shared devices.
+                <strong>Safety Tip:</strong> "Remember me" is OFF by default
+                for your safety on shared devices.
               </p>
             </div>
 
-            {/* Submit Button */}
+            {errorMsg && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+                <p className="text-xs text-red-800">{errorMsg}</p>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-3.5 rounded-full transition-all shadow-lg"
+              disabled={loading}
+              className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 text-white py-3.5 rounded-full transition-all shadow-lg"
             >
-              Log In
+              {loading
+                ? "Logging In..."
+                : role === "mentor"
+                  ? "Log In as Mentor"
+                  : "Log In"}
             </button>
           </form>
 
-          {/* Divider */}
           <div className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-gray-200"></div>
             <span className="text-sm text-gray-500">or</span>
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
-          {/* Sign Up Link */}
           <div className="text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { Heart, Menu, X } from "lucide-react";
+import { Heart, Menu, X, UserCircle } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -81,6 +81,17 @@ export function Navbar({ isPublic = true }: NavbarProps) {
               >
                 Healthcare
               </Link>
+              <Link
+                to="/profile"
+                className={`flex items-center gap-1 text-sm ${
+                  location.pathname === "/profile"
+                    ? "text-[#7c3aed]"
+                    : "text-[#1e1b4b] hover:text-[#7c3aed]"
+                } transition-colors`}
+              >
+                <UserCircle className="w-5 h-5" />
+                Profile
+              </Link>
             </div>
           )}
 
@@ -150,6 +161,13 @@ export function Navbar({ isPublic = true }: NavbarProps) {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     Healthcare
+                  </Link>
+                  <Link
+                    to="/profile"
+                    className="block text-[#1e1b4b] hover:text-[#7c3aed] py-2"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Profile
                   </Link>
                 </>
               )}

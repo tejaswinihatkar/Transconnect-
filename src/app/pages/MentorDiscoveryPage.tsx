@@ -1,15 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router";
 import { Search, Filter } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { CrisisButton } from "../components/CrisisButton";
 import { MobileBottomNav } from "../components/MobileBottomNav";
 import { motion } from "motion/react";
-import { mentors } from "../data/mockData";
+import { supabase } from "../../supabaseClient";
+import type { Mentor } from "../data/mockData";
 
 export function MentorDiscoveryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [mentors, setMentors] = useState<Mentor[]>([]);
+  const [loadingMentors, setLoadingMentors] = useState(true);
+
+  useEffect(() => {
+    const fetchMentors = async () => {
+      const { data, error } = await supabase.from("mentors").select("*");
+      if (data) setMentors(data);
+      if (error) console.error("Failed to fetch mentors:", error.message);
+      setLoadingMentors(false);
+    };
+
+    fetchMentors();
+  }, []);
 
   const filterOptions = ["Medical Transition", "Coming Out", "Career", "Legal", "Mental Health", "Family Support"];
 
@@ -111,6 +125,13 @@ export function MentorDiscoveryPage() {
             Found {filteredMentors.length} mentor{filteredMentors.length !== 1 ? "s" : ""}
           </p>
         </motion.div>
+
+        {/* Loading State */}
+        {loadingMentors && (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Loading mentors...</p>
+          </div>
+        )}
 
         {/* Mentor Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

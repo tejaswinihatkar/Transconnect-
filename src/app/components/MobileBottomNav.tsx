@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { Home, Search, MessageSquare, BookOpen, Stethoscope } from "lucide-react";
+import { Home, Search, MessageSquare, BookOpen, Stethoscope, UserCircle } from "lucide-react";
 
 export function MobileBottomNav() {
   const location = useLocation();
@@ -10,6 +10,7 @@ export function MobileBottomNav() {
     { icon: MessageSquare, label: "Chat", path: "/chat" },
     { icon: BookOpen, label: "Resources", path: "/resources" },
     { icon: Stethoscope, label: "Doctors", path: "/healthcare" },
+    { icon: UserCircle, label: "Profile", path: "/profile" },
   ];
 
   return (

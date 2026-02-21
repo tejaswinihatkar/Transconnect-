@@ -1,73 +1,108 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router";
 import { Send, Paperclip, Smile, Lock } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { CrisisButton } from "../components/CrisisButton";
 import { MobileBottomNav } from "../components/MobileBottomNav";
 import { motion } from "motion/react";
-import { mentors } from "../data/mockData";
+import { supabase } from "../../supabaseClient";
+import type { Mentor } from "../data/mockData";
 
 interface Message {
   id: string;
-  senderId: string;
+  sender_id: string;
   text: string;
-  timestamp: string;
+  created_at: string;
+  mentor_id?: string;
 }
 
 export function ChatPage() {
   const { mentorId } = useParams();
   const [messageText, setMessageText] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      senderId: mentorId || "1",
-      text: "Hi! Thanks for reaching out. How can I help you today?",
-      timestamp: "10:30 AM",
-    },
-    {
-      id: "2",
-      senderId: "user",
-      text: "Hi! I'm looking for guidance on starting HRT. I'm not sure where to begin.",
-      timestamp: "10:32 AM",
-    },
-    {
-      id: "3",
-      senderId: mentorId || "1",
-      text: "That's a great question! I'd be happy to share my experience. First, have you consulted with an endocrinologist?",
-      timestamp: "10:33 AM",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [activeMentor, setActiveMentor] = useState<Mentor | null>(null);
+  const [chatMentors, setChatMentors] = useState<Mentor[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  const activeMentor = mentors.find((m) => m.id === mentorId) || mentors[0];
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id ?? null);
+    });
+  }, []);
 
-  const chats = [
-    { ...mentors[0], lastMessage: "That sounds great! Let's connect tomorrow.", time: "2m ago", unread: 2 },
-    { ...mentors[1], lastMessage: "Thank you for your help!", time: "1h ago", unread: 0 },
-    { ...mentors[2], lastMessage: "I'll send you those resources.", time: "3h ago", unread: 0 },
-  ];
+  useEffect(() => {
+    const fetchMentor = async () => {
+      if (!mentorId) return;
+      const { data } = await supabase
+        .from("mentors")
+        .select("*")
+        .eq("id", mentorId)
+        .single();
+      if (data) setActiveMentor(data);
+    };
+    fetchMentor();
+  }, [mentorId]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  useEffect(() => {
+    const fetchChatMentors = async () => {
+      const { data } = await supabase.from("mentors").select("*").limit(3);
+      if (data) setChatMentors(data);
+    };
+    fetchChatMentors();
+  }, []);
+
+  useEffect(() => {
+    const getMessages = async () => {
+      const { data } = await supabase
+        .from("messages")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (data) setMessages(data);
+    };
+    getMessages();
+
+    const channel = supabase
+      .channel("public:messages")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new as Message]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const chats = chatMentors.map((m, i) => ({
+    ...m,
+    lastMessage: i === 0 ? "That sounds great! Let's connect tomorrow." : i === 1 ? "Thank you for your help!" : "I'll send you those resources.",
+    time: i === 0 ? "2m ago" : i === 1 ? "1h ago" : "3h ago",
+    unread: i === 0 ? 2 : 0,
+  }));
+
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (messageText.trim()) {
-      const newMessage: Message = {
-        id: Date.now().toString(),
-        senderId: "user",
-        text: messageText,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      };
-      setMessages([...messages, newMessage]);
-      setMessageText("");
+    if (!messageText.trim()) return;
 
-      // Simulate mentor response
-      setTimeout(() => {
-        const response: Message = {
-          id: (Date.now() + 1).toString(),
-          senderId: mentorId || "1",
-          text: "I understand. Let me share some resources that might help you.",
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        };
-        setMessages((prev) => [...prev, response]);
-      }, 1500);
+    await supabase.from("messages").insert([
+      {
+        sender_id: currentUserId ?? "user",
+        text: messageText,
+        mentor_id: mentorId,
+      },
+    ]);
+    setMessageText("");
+  };
+
+  const formatTime = (dateStr: string) => {
+    try {
+      return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return "";
     }
   };
 
@@ -123,21 +158,27 @@ export function ChatPage() {
           {/* Chat Header */}
           <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
-                style={{
-                  background: `linear-gradient(135deg, ${activeMentor.gradientFrom}, ${activeMentor.gradientTo})`,
-                }}
-              >
-                {activeMentor.initials}
-              </div>
-              <div>
-                <h2 className="text-[#1e1b4b]">{activeMentor.name}</h2>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-xs text-gray-600">Online</span>
-                </div>
-              </div>
+              {activeMentor ? (
+                <>
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                    style={{
+                      background: `linear-gradient(135deg, ${activeMentor.gradientFrom}, ${activeMentor.gradientTo})`,
+                    }}
+                  >
+                    {activeMentor.initials}
+                  </div>
+                  <div>
+                    <h2 className="text-[#1e1b4b]">{activeMentor.name}</h2>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-xs text-gray-600">Online</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-gray-400 text-sm">Loading...</div>
+              )}
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-600">
               <Lock className="w-4 h-4" />
@@ -147,31 +188,34 @@ export function ChatPage() {
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.map((message) => (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`flex ${message.senderId === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[70%] rounded-2xl px-4 py-3 ${
-                    message.senderId === "user"
-                      ? "bg-[#7c3aed] text-white"
-                      : "bg-gray-100 text-[#1e1b4b]"
-                  }`}
+            {messages.map((message) => {
+              const isOwnMessage = message.sender_id === currentUserId || message.sender_id === "user";
+              return (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
                 >
-                  <p className="text-sm">{message.text}</p>
-                  <p
-                    className={`text-xs mt-1 ${
-                      message.senderId === "user" ? "text-white/70" : "text-gray-500"
+                  <div
+                    className={`max-w-[70%] rounded-2xl px-4 py-3 ${
+                      isOwnMessage
+                        ? "bg-[#7c3aed] text-white"
+                        : "bg-gray-100 text-[#1e1b4b]"
                     }`}
                   >
-                    {message.timestamp}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
+                    <p className="text-sm">{message.text}</p>
+                    <p
+                      className={`text-xs mt-1 ${
+                        isOwnMessage ? "text-white/70" : "text-gray-500"
+                      }`}
+                    >
+                      {formatTime(message.created_at)}
+                    </p>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
 
           {/* Input Area */}
