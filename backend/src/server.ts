@@ -5,8 +5,8 @@ import dotenv from "dotenv";
 dotenv.config();
 
 import authRoutes from "./routes/auth";
-import mentorRoutes from "./routes/mentors";
 import messageRoutes from "./routes/messages";
+import studyRoutes from "./routes/study";
 
 const app = express();
 
@@ -25,8 +25,8 @@ app.get("/api/health", (_req, res) => {
 
 // API Routes
 app.use("/api/auth", authRoutes);
-app.use("/api/mentors", mentorRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api", studyRoutes);
 
 const PORT = process.env.PORT || 5000;
 

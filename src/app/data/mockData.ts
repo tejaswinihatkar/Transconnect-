@@ -1,16 +1,3 @@
-export interface Mentor {
-  id: string;
-  name: string;
-  pronouns: string;
-  city: string;
-  languages: string[];
-  topics: string[];
-  verified: boolean;
-  initials: string;
-  gradientFrom: string;
-  gradientTo: string;
-}
-
 export interface Doctor {
   id: string;
   name: string;
@@ -28,81 +15,6 @@ export interface Resource {
   description: string;
   icon: string;
 }
-
-export const mentors: Mentor[] = [
-  {
-    id: "1",
-    name: "Aarav",
-    pronouns: "He/Him",
-    city: "Mumbai",
-    languages: ["Hindi", "English"],
-    topics: ["Medical Transition", "Coming Out"],
-    verified: true,
-    initials: "A",
-    gradientFrom: "#f472b6",
-    gradientTo: "#7c3aed",
-  },
-  {
-    id: "2",
-    name: "Priya",
-    pronouns: "She/Her",
-    city: "Delhi",
-    languages: ["Hindi", "English", "Punjabi"],
-    topics: ["Career", "Legal"],
-    verified: true,
-    initials: "P",
-    gradientFrom: "#7c3aed",
-    gradientTo: "#38bdf8",
-  },
-  {
-    id: "3",
-    name: "Rohan",
-    pronouns: "He/Him",
-    city: "Bangalore",
-    languages: ["English", "Kannada"],
-    topics: ["Medical Transition", "Mental Health"],
-    verified: true,
-    initials: "R",
-    gradientFrom: "#38bdf8",
-    gradientTo: "#f472b6",
-  },
-  {
-    id: "4",
-    name: "Kavya",
-    pronouns: "She/Her",
-    city: "Chennai",
-    languages: ["English", "Tamil"],
-    topics: ["Coming Out", "Family Support"],
-    verified: true,
-    initials: "K",
-    gradientFrom: "#f472b6",
-    gradientTo: "#38bdf8",
-  },
-  {
-    id: "5",
-    name: "Sam",
-    pronouns: "They/Them",
-    city: "Pune",
-    languages: ["Hindi", "English", "Marathi"],
-    topics: ["Non-binary Identity", "Career"],
-    verified: true,
-    initials: "S",
-    gradientFrom: "#7c3aed",
-    gradientTo: "#f472b6",
-  },
-  {
-    id: "6",
-    name: "Anjali",
-    pronouns: "She/Her",
-    city: "Kolkata",
-    languages: ["Bengali", "English", "Hindi"],
-    topics: ["Legal", "Documentation"],
-    verified: true,
-    initials: "A",
-    gradientFrom: "#38bdf8",
-    gradientTo: "#7c3aed",
-  },
-];
 
 export const doctors: Doctor[] = [
   {

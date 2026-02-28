@@ -12,16 +12,10 @@ export const getMessages = async (
       return;
     }
 
-    const { mentorId } = req.query;
-
     let queryBuilder = supabaseAdmin
       .from("messages")
       .select("*")
       .order("created_at", { ascending: true });
-
-    if (typeof mentorId === "string" && mentorId.trim()) {
-      queryBuilder = queryBuilder.eq("mentor_id", mentorId);
-    }
 
     const { data, error } = await queryBuilder;
 
@@ -48,7 +42,7 @@ export const sendMessage = async (
       return;
     }
 
-    const { text, mentorId } = req.body;
+    const { text } = req.body;
 
     if (!text || !text.trim()) {
       res.status(400).json({ error: "Message text is required." });
@@ -60,7 +54,6 @@ export const sendMessage = async (
       .insert({
         sender_id: req.user.id,
         text: text.trim(),
-        mentor_id: mentorId || null,
       })
       .select()
       .single();

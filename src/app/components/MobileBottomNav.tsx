@@ -1,16 +1,19 @@
 import { Link, useLocation } from "react-router";
-import { Home, Search, MessageSquare, BookOpen, Stethoscope, UserCircle } from "lucide-react";
+import { Home, Search, MessageSquare, BookOpen, Stethoscope, UserCircle, Sparkles } from "lucide-react";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export function MobileBottomNav() {
   const location = useLocation();
+  const { t } = useLanguage();
 
   const navItems = [
-    { icon: Home, label: "Home", path: "/dashboard" },
-    { icon: Search, label: "Mentors", path: "/mentors" },
-    { icon: MessageSquare, label: "Chat", path: "/chat" },
-    { icon: BookOpen, label: "Resources", path: "/resources" },
-    { icon: Stethoscope, label: "Doctors", path: "/healthcare" },
-    { icon: UserCircle, label: "Profile", path: "/profile" },
+    { icon: Home, label: t("nav.home"), path: "/dashboard" },
+    { icon: Search, label: t("nav.studyBot"), path: "/study-bot" },
+    { icon: MessageSquare, label: t("mobile.chat"), path: "/chat" },
+    { icon: BookOpen, label: t("nav.resources"), path: "/resources" },
+    { icon: Sparkles, label: t("nav.talent"), path: "/talent" },
+    { icon: Stethoscope, label: t("mobile.doctors"), path: "/healthcare" },
+    { icon: UserCircle, label: t("nav.profile"), path: "/profile" },
   ];
 
   return (

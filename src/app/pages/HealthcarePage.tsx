@@ -1,69 +1,191 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   MapPin,
   Star,
-  Shield,
   Search,
-  Stethoscope,
   Phone,
   Clock,
-  CheckCircle,
   Filter,
-  ChevronRight,
   Heart,
-  Award,
+  ChevronDown,
+  ChevronUp,
+  Navigation,
+  MessageCircle,
+  CalendarDays,
+  X,
+  ShieldCheck,
 } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { CrisisButton } from "../components/CrisisButton";
 import { MobileBottomNav } from "../components/MobileBottomNav";
 import { motion } from "motion/react";
-import { doctors } from "../data/mockData";
+import { useLanguage } from "../i18n/LanguageContext";
 
-const specialtyColors: Record<string, { bg: string; text: string; gradient: string }> = {
-  Endocrinologist: { bg: "bg-violet-100", text: "text-violet-700", gradient: "from-[#7c3aed] to-[#a78bfa]" },
-  Psychiatrist: { bg: "bg-sky-100", text: "text-sky-700", gradient: "from-[#0ea5e9] to-[#38bdf8]" },
-  "General Physician": { bg: "bg-emerald-100", text: "text-emerald-700", gradient: "from-[#10b981] to-[#34d399]" },
-  "Plastic Surgeon": { bg: "bg-pink-100", text: "text-pink-700", gradient: "from-[#ec4899] to-[#f472b6]" },
-  Psychologist: { bg: "bg-amber-100", text: "text-amber-700", gradient: "from-[#f59e0b] to-[#fbbf24]" },
-};
-
-const defaultColor = { bg: "bg-gray-100", text: "text-gray-700", gradient: "from-[#7c3aed] to-[#38bdf8]" };
-
-function getInitials(name: string) {
-  return name
-    .replace(/^Dr\.\s*/, "")
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+interface Clinic {
+  id: string;
+  clinicName: string;
+  doctorName: string;
+  specialty: "HRT" | "Endocrinology" | "Surgery" | "Therapy";
+  rating: number;
+  verified: boolean;
+  lat: number;
+  lng: number;
+  distanceKm: number;
+  phone: string;
+  whatsapp: string;
 }
 
+const clinics: Clinic[] = [
+  {
+    id: "c1",
+    clinicName: "Sahara Gender Care Center",
+    doctorName: "Dr. Meera Sharma",
+    specialty: "HRT",
+    rating: 4.9,
+    verified: true,
+    lat: 19.0821,
+    lng: 72.8416,
+    distanceKm: 2.1,
+    phone: "+91-9876543210",
+    whatsapp: "919876543210",
+  },
+  {
+    id: "c2",
+    clinicName: "Harmony Endocrine Clinic",
+    doctorName: "Dr. Vikram Singh",
+    specialty: "Endocrinology",
+    rating: 4.7,
+    verified: true,
+    lat: 19.0648,
+    lng: 72.8353,
+    distanceKm: 3.4,
+    phone: "+91-9988776655",
+    whatsapp: "919988776655",
+  },
+  {
+    id: "c3",
+    clinicName: "AffirmCare Surgery Unit",
+    doctorName: "Dr. Anil Verma",
+    specialty: "Surgery",
+    rating: 4.5,
+    verified: false,
+    lat: 19.1023,
+    lng: 72.8854,
+    distanceKm: 5.8,
+    phone: "+91-9123456780",
+    whatsapp: "919123456780",
+  },
+  {
+    id: "c4",
+    clinicName: "SafeMind Therapy Collective",
+    doctorName: "Dr. Sneha Gupta",
+    specialty: "Therapy",
+    rating: 4.8,
+    verified: true,
+    lat: 19.0481,
+    lng: 72.8192,
+    distanceKm: 6.2,
+    phone: "+91-9090909090",
+    whatsapp: "919090909090",
+  },
+];
+
 export function HealthcarePage() {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSpecialty, setSelectedSpecialty] = useState("All");
-
-  const specialties = ["All", ...Array.from(new Set(doctors.map((d) => d.specialty)))];
-
-  const filteredDoctors = doctors.filter((doctor) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.location.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesSpecialty =
-      selectedSpecialty === "All" || doctor.specialty === selectedSpecialty;
-
-    return matchesSearch && matchesSpecialty;
+  const [selectedSpecialty, setSelectedSpecialty] = useState<
+    "All" | "HRT" | "Endocrinology" | "Surgery" | "Therapy"
+  >("All");
+  const [ratingFilter, setRatingFilter] = useState<"All" | "4+" | "3+">("All");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [within10Km, setWithin10Km] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mapCenter, setMapCenter] = useState({ lat: 19.076, lng: 72.8777 });
+  const [zoom, setZoom] = useState(12);
+  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(clinics[0].id);
+  const [showModal, setShowModal] = useState(false);
+  const [bookingClinic, setBookingClinic] = useState<Clinic | null>(null);
+  const [anonymous, setAnonymous] = useState(false);
+  const [bookingData, setBookingData] = useState({
+    date: "",
+    time: "",
+    name: "",
+    contact: "",
   });
 
-  const stats = [
-    { value: `${doctors.length}+`, label: "Verified Providers", icon: CheckCircle },
-    { value: `${new Set(doctors.map((d) => d.location.split(",")[1]?.trim())).size}+`, label: "States Covered", icon: MapPin },
-    { value: `${specialties.length - 1}`, label: "Specialties", icon: Stethoscope },
-    { value: "4.8", label: "Avg Rating", icon: Star },
-  ];
+  const timeSlots = ["10:00 AM", "11:00 AM", "12:30 PM", "02:00 PM", "03:30 PM", "05:00 PM"];
+  const specialties = ["All", "HRT", "Endocrinology", "Surgery", "Therapy"] as const;
+
+  const filteredClinics = useMemo(() => {
+    return clinics.filter((clinic) => {
+      const q = searchQuery.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        clinic.clinicName.toLowerCase().includes(q) ||
+        clinic.doctorName.toLowerCase().includes(q) ||
+        clinic.specialty.toLowerCase().includes(q);
+      const matchSpecialty =
+        selectedSpecialty === "All" || clinic.specialty === selectedSpecialty;
+      const matchRating =
+        ratingFilter === "All" ||
+        (ratingFilter === "4+" && clinic.rating >= 4) ||
+        (ratingFilter === "3+" && clinic.rating >= 3);
+      const matchVerified = !verifiedOnly || clinic.verified;
+      const matchDistance = !within10Km || clinic.distanceKm <= 10;
+      return (
+        matchSearch &&
+        matchSpecialty &&
+        matchRating &&
+        matchVerified &&
+        matchDistance
+      );
+    });
+  }, [ratingFilter, searchQuery, selectedSpecialty, verifiedOnly, within10Km]);
+
+  const selectedClinic =
+    filteredClinics.find((c) => c.id === selectedClinicId) || filteredClinics[0] || null;
+
+  const mapSrc = selectedClinic
+    ? `https://www.google.com/maps?q=${selectedClinic.lat},${selectedClinic.lng}&z=${zoom}&output=embed`
+    : `https://www.google.com/maps?q=${mapCenter.lat},${mapCenter.lng}&z=${zoom}&output=embed`;
+
+  const handleMyLocation = () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const next = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setMapCenter(next);
+        setSelectedClinicId(null);
+      },
+      () => {
+        alert("Unable to access your location. Showing Mumbai by default.");
+      }
+    );
+  };
+
+  const openBooking = (clinic: Clinic) => {
+    setBookingClinic(clinic);
+    setShowModal(true);
+    setBookingData({
+      date: "",
+      time: "",
+      name: "",
+      contact: "",
+    });
+    setAnonymous(false);
+  };
+
+  const handleSendRequest = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookingClinic) return;
+    alert(
+      `Appointment request sent to ${bookingClinic.clinicName}.\n\nDoctor: ${bookingClinic.doctorName}\nDate: ${bookingData.date}\nTime: ${bookingData.time}`
+    );
+    setShowModal(false);
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20 md:pb-0">
@@ -72,308 +194,358 @@ export function HealthcarePage() {
       <MobileBottomNav />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Banner */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-[#7c3aed] via-[#7c3aed] to-[#38bdf8] rounded-3xl shadow-xl p-8 lg:p-10 mb-8 relative overflow-hidden"
+          className="bg-gradient-to-br from-[#7c3aed] via-[#7c3aed] to-[#38bdf8] rounded-3xl shadow-xl p-8 mb-8 text-white"
         >
-          <div className="absolute top-0 right-0 w-72 h-72 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
-
-          <div className="relative grid lg:grid-cols-[1fr,auto] gap-8 items-center">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                  <Stethoscope className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-sm text-white/80 bg-white/10 px-3 py-1 rounded-full">
-                  Community Verified
-                </span>
-              </div>
-              <h1 className="text-3xl lg:text-4xl text-white font-semibold mb-3">
-                Healthcare Directory
-              </h1>
-              <p className="text-white/80 text-lg max-w-xl">
-                Find trans-friendly doctors and healthcare providers across India,
-                verified by our community for judgment-free care.
-              </p>
-            </div>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              {stats.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={stat.label}
-                    className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center min-w-[120px]"
-                  >
-                    <Icon className="w-5 h-5 text-white/70 mx-auto mb-1" />
-                    <p className="text-2xl font-semibold text-white">{stat.value}</p>
-                    <p className="text-xs text-white/70">{stat.label}</p>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="inline-flex items-center gap-2 bg-white/15 px-3 py-1 rounded-full text-xs mb-4">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Google Maps + Appointment Booking
           </div>
-        </motion.div>
-
-        {/* Emergency Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-3"
-        >
-          <div className="flex items-center gap-3 flex-1">
-            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Phone className="w-5 h-5 text-red-600" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-red-800">
-                In a medical emergency, call 112 or go to your nearest hospital.
-              </p>
-              <p className="text-xs text-red-600">
-                Vandrevala Foundation Helpline: 1860-2662-345 (24/7)
-              </p>
-            </div>
-          </div>
-          <a
-            href="tel:112"
-            className="bg-red-600 hover:bg-red-700 text-white text-sm px-5 py-2 rounded-full transition-all flex-shrink-0"
-          >
-            Call 112
-          </a>
-        </motion.div>
-
-        {/* Search Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-6"
-        >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by doctor name, specialty, or location..."
-              className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] bg-white shadow-sm"
-            />
-          </div>
-        </motion.div>
-
-        {/* Specialty Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-8"
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <Filter className="w-5 h-5 text-[#1e1b4b]" />
-            <h2 className="text-[#1e1b4b]">Filter by Specialty</h2>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {specialties.map((specialty) => (
-              <button
-                key={specialty}
-                onClick={() => setSelectedSpecialty(specialty)}
-                className={`px-4 py-2 rounded-full text-sm transition-all ${
-                  selectedSpecialty === specialty
-                    ? "bg-[#7c3aed] text-white shadow-lg"
-                    : "bg-white text-[#1e1b4b] border border-gray-300 hover:border-[#7c3aed]"
-                }`}
-              >
-                {specialty}
-              </button>
-            ))}
-          </div>
-          {selectedSpecialty !== "All" && (
-            <button
-              onClick={() => setSelectedSpecialty("All")}
-              className="mt-3 text-sm text-[#7c3aed] hover:underline"
-            >
-              Clear filter
-            </button>
-          )}
-        </motion.div>
-
-        {/* Trust Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-gradient-to-r from-[#7c3aed]/5 to-[#38bdf8]/5 border border-[#7c3aed]/15 rounded-2xl p-5 mb-8 flex items-start gap-4"
-        >
-          <div className="w-10 h-10 bg-[#7c3aed]/10 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Shield className="w-5 h-5 text-[#7c3aed]" />
-          </div>
-          <div>
-            <h3 className="text-[#1e1b4b] font-medium mb-1">All Providers Are Community Verified</h3>
-            <p className="text-sm text-gray-600">
-              Every healthcare provider listed has been reviewed by our community and is committed
-              to providing respectful, judgment-free, trans-affirming care.
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Results Count */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.25 }}
-          className="mb-6"
-        >
-          <p className="text-gray-600">
-            {filteredDoctors.length} provider{filteredDoctors.length !== 1 ? "s" : ""} found
-            {selectedSpecialty !== "All" && (
-              <span className="text-[#7c3aed]"> in {selectedSpecialty}</span>
-            )}
+          <h1 className="text-3xl font-semibold mb-2">{t("healthcare.title")}</h1>
+          <p className="text-white/85 max-w-3xl">
+            Find nearby trans-friendly clinics, compare verified providers, and send appointment
+            requests in one flow.
           </p>
         </motion.div>
 
-        {/* Doctor Cards Grid */}
-        <div className="grid lg:grid-cols-2 gap-6">
-          {filteredDoctors.map((doctor, index) => {
-            const colors = specialtyColors[doctor.specialty] || defaultColor;
-            const initials = getInitials(doctor.name);
-
-            return (
-              <motion.div
-                key={doctor.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.05 }}
-                className="bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all overflow-hidden group"
-              >
-                <div className="p-6">
-                  {/* Header: Avatar + Info */}
-                  <div className="flex items-start gap-4 mb-5">
-                    <div
-                      className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${colors.gradient} flex items-center justify-center text-white text-xl font-semibold flex-shrink-0 group-hover:scale-105 transition-transform`}
-                    >
-                      {initials}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h2 className="text-lg text-[#1e1b4b] font-medium">{doctor.name}</h2>
-                        <span className={`text-xs px-2.5 py-0.5 rounded-full ${colors.bg} ${colors.text}`}>
-                          {doctor.specialty}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5" />
-                          <span>{doctor.location}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                          <span className="font-medium text-[#1e1b4b]">{doctor.rating}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Badges */}
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {doctor.badges.map((badge) => (
-                      <span
-                        key={badge}
-                        className="inline-flex items-center gap-1.5 bg-[#7c3aed]/8 text-[#7c3aed] px-3 py-1.5 rounded-full text-xs font-medium"
-                      >
-                        <Award className="w-3 h-3" />
-                        {badge}
-                      </span>
-                    ))}
-                  </div>
-
-                  {/* Review */}
-                  <div className="bg-gray-50 rounded-2xl p-4 mb-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Heart className="w-3.5 h-3.5 text-[#f472b6]" />
-                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        Community Review
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-600 italic leading-relaxed">
-                      "{doctor.reviewSnippet}"
-                    </p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-3">
-                    <button className="flex-1 bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-3 rounded-full transition-all shadow-md hover:shadow-lg text-sm font-medium flex items-center justify-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Book Appointment
-                    </button>
-                    <button className="flex-1 bg-white hover:bg-gray-50 text-[#1e1b4b] py-3 rounded-full border border-gray-300 hover:border-[#7c3aed] transition-all text-sm font-medium flex items-center justify-center gap-2">
-                      View Profile
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* No Results */}
-        {filteredDoctors.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
-          >
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-gray-400" />
-            </div>
-            <p className="text-gray-600 mb-2 text-lg">No providers found</p>
-            <p className="text-gray-400 text-sm mb-4">
-              Try adjusting your search or filters
-            </p>
-            <button
-              onClick={() => {
-                setSearchQuery("");
-                setSelectedSpecialty("All");
-              }}
-              className="text-[#7c3aed] hover:underline"
-            >
-              Clear all filters
-            </button>
-          </motion.div>
-        )}
-
-        {/* CTA Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="mt-12 bg-gradient-to-br from-[#f472b6] to-[#38bdf8] rounded-3xl p-8 lg:p-10 text-center relative overflow-hidden"
+          transition={{ delay: 0.08 }}
+          className="bg-white rounded-3xl shadow-lg p-5 mb-6"
         >
-          <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 -translate-x-1/2" />
-          <div className="absolute bottom-0 right-0 w-56 h-56 bg-white/10 rounded-full translate-y-1/2 translate-x-1/3" />
+          <div className="grid lg:grid-cols-[1fr,auto] gap-4 items-end">
+            <div>
+              <div className="relative mb-4">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search: HRT clinics near me..."
+                  className="w-full pl-12 pr-4 py-4 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] bg-white shadow-sm"
+                />
+              </div>
 
-          <div className="relative">
-            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Stethoscope className="w-7 h-7 text-white" />
+              <div className="flex flex-wrap gap-2">
+                <div className="inline-flex items-center gap-2 text-sm text-gray-600 mr-2">
+                  <Filter className="w-4 h-4" />
+                  Filters:
+                </div>
+                <select
+                  value={selectedSpecialty}
+                  onChange={(e) => setSelectedSpecialty(e.target.value as typeof selectedSpecialty)}
+                  className="px-3 py-2 rounded-full border border-gray-300 text-sm"
+                >
+                  {specialties.map((s) => (
+                    <option key={s} value={s}>
+                      {s === "All" ? "All Specialties" : s}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={ratingFilter}
+                  onChange={(e) => setRatingFilter(e.target.value as typeof ratingFilter)}
+                  className="px-3 py-2 rounded-full border border-gray-300 text-sm"
+                >
+                  <option value="All">All Ratings</option>
+                  <option value="4+">4+ ⭐</option>
+                  <option value="3+">3+ ⭐</option>
+                </select>
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-gray-300 text-sm bg-white">
+                  <input
+                    type="checkbox"
+                    checked={verifiedOnly}
+                    onChange={(e) => setVerifiedOnly(e.target.checked)}
+                  />
+                  Verified Only
+                </label>
+                <label className="inline-flex items-center gap-2 px-3 py-2 rounded-full border border-gray-300 text-sm bg-white">
+                  <input
+                    type="checkbox"
+                    checked={within10Km}
+                    onChange={(e) => setWithin10Km(e.target.checked)}
+                  />
+                  Within 10km
+                </label>
+              </div>
             </div>
-            <h2 className="text-2xl lg:text-3xl text-white font-semibold mb-3">
-              Can't Find What You're Looking For?
-            </h2>
-            <p className="text-white/90 mb-6 max-w-2xl mx-auto">
-              Help us grow our directory by suggesting trans-friendly healthcare
-              providers in your area. Every contribution makes a difference.
-            </p>
-            <button className="bg-white hover:bg-gray-100 text-[#7c3aed] px-8 py-3.5 rounded-full transition-all shadow-lg font-medium">
-              Suggest a Provider
-            </button>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={handleMyLocation}
+                className="inline-flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-4 py-2.5 rounded-full text-sm"
+              >
+                <Navigation className="w-4 h-4" />
+                My Location
+              </button>
+              <button
+                onClick={() => setSidebarOpen((prev) => !prev)}
+                className="inline-flex items-center gap-1 bg-gray-100 hover:bg-gray-200 text-[#1e1b4b] px-4 py-2.5 rounded-full text-sm"
+              >
+                Clinic List
+                {sidebarOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="grid lg:grid-cols-[1fr,380px] gap-6 items-start">
+          <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                Map View • {filteredClinics.length} clinic{filteredClinics.length !== 1 ? "s" : ""}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setZoom((z) => Math.min(18, z + 1))}
+                  className="px-3 py-1 rounded-full bg-gray-100 text-sm"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => setZoom((z) => Math.max(6, z - 1))}
+                  className="px-3 py-1 rounded-full bg-gray-100 text-sm"
+                >
+                  -
+                </button>
+              </div>
+            </div>
+            <div className="relative h-[500px] lg:h-[620px]">
+              <iframe
+                title="Healthcare Map"
+                src={mapSrc}
+                className="w-full h-full border-0"
+                loading="lazy"
+              />
+              <div className="absolute top-3 left-3 right-3 flex gap-2 overflow-x-auto">
+                {filteredClinics.map((clinic) => (
+                  <button
+                    key={clinic.id}
+                    onClick={() => setSelectedClinicId(clinic.id)}
+                    className={`whitespace-nowrap text-xs px-3 py-1.5 rounded-full border ${
+                      selectedClinicId === clinic.id
+                        ? "bg-[#7c3aed] text-white border-[#7c3aed]"
+                        : clinic.verified
+                          ? "bg-white text-[#1e1b4b] border-green-200"
+                          : "bg-white text-[#1e1b4b] border-red-200"
+                    }`}
+                  >
+                    {clinic.verified ? "🟢" : "🔴"} {clinic.clinicName}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div
+            className={`${sidebarOpen ? "block" : "hidden lg:block"} bg-white rounded-3xl shadow-lg lg:sticky lg:top-24`}
+          >
+            <div className="p-5 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-[#1e1b4b] text-lg">Nearby Clinics</h2>
+                <span className="text-xs text-gray-500">
+                  {filteredClinics.length} result{filteredClinics.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+            </div>
+            <div className="p-4 space-y-3 max-h-[68vh] overflow-y-auto">
+              {filteredClinics.map((clinic) => (
+                <div
+                  key={clinic.id}
+                  className={`rounded-2xl border p-4 ${
+                    selectedClinicId === clinic.id
+                      ? "border-violet-200 bg-violet-50/40 ring-1 ring-violet-100"
+                      : "border-gray-200"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1.5">
+                    <h3 className="text-[#1e1b4b] text-sm leading-tight">{clinic.clinicName}</h3>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full ${
+                        clinic.verified
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {clinic.verified ? "Verified" : "Unverified"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-2">
+                    {clinic.doctorName} • {clinic.specialty}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 mb-3">
+                    <span className="inline-flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      {clinic.rating}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5" />
+                      {clinic.distanceKm} km away
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedClinicId(clinic.id);
+                        setMapCenter({ lat: clinic.lat, lng: clinic.lng });
+                      }}
+                      className="text-xs px-3 py-2 rounded-xl border border-gray-300 hover:border-[#7c3aed]"
+                    >
+                      View on Map
+                    </button>
+                    <button
+                      onClick={() => openBooking(clinic)}
+                      className="inline-flex items-center justify-center gap-1 text-xs px-3 py-2 rounded-xl bg-[#1e1b4b] text-white hover:bg-[#111031]"
+                    >
+                      <CalendarDays className="w-3.5 h-3.5" />
+                      Book
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mt-2.5">
+                    <a
+                      href={`tel:${clinic.phone}`}
+                      className="inline-flex items-center justify-center gap-1 bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-xs px-3 py-2 rounded-xl"
+                    >
+                      <Phone className="w-3.5 h-3.5" />
+                      Call
+                    </a>
+                    <a
+                      href={`https://wa.me/${clinic.whatsapp}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center justify-center gap-1 bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-2 rounded-xl"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      WhatsApp
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-8 bg-gradient-to-br from-[#f472b6]/10 to-[#38bdf8]/10 rounded-3xl p-6 border border-[#7c3aed]/15"
+        >
+          <div className="flex items-start gap-3">
+            <Heart className="w-5 h-5 text-[#7c3aed] mt-0.5" />
+            <div>
+              <h3 className="text-[#1e1b4b] mb-1">Community Safety Note</h3>
+              <p className="text-sm text-gray-600">
+                Verified clinics are reviewed by our community. For urgent emergencies, call 112
+                or your nearest hospital.
+              </p>
+            </div>
           </div>
         </motion.div>
       </div>
+
+      {showModal && bookingClinic && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px] p-4 flex items-center justify-center">
+          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-xl text-[#1e1b4b]">Book Appointment</h3>
+              <button
+                onClick={() => setShowModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleSendRequest} className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Doctor Name</label>
+                <input
+                  value={bookingClinic.doctorName}
+                  readOnly
+                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl bg-gray-50"
+                />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={bookingData.date}
+                    onChange={(e) =>
+                      setBookingData((prev) => ({ ...prev, date: e.target.value }))
+                    }
+                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Time</label>
+                  <select
+                    required
+                    value={bookingData.time}
+                    onChange={(e) =>
+                      setBookingData((prev) => ({ ...prev, time: e.target.value }))
+                    }
+                    className="w-full px-4 py-3 border border-gray-300 rounded-2xl"
+                  >
+                    <option value="">Select time</option>
+                    {timeSlots.map((slot) => (
+                      <option key={slot} value={slot}>
+                        {slot}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={anonymous}
+                  onChange={(e) => setAnonymous(e.target.checked)}
+                />
+                Book anonymously
+              </label>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Name</label>
+                <input
+                  required={!anonymous}
+                  disabled={anonymous}
+                  value={anonymous ? "Anonymous" : bookingData.name}
+                  onChange={(e) =>
+                    setBookingData((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl disabled:bg-gray-50"
+                  placeholder="Enter your name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Phone or Email</label>
+                <input
+                  required
+                  value={bookingData.contact}
+                  onChange={(e) =>
+                    setBookingData((prev) => ({ ...prev, contact: e.target.value }))
+                  }
+                  className="w-full px-4 py-3 border border-gray-300 rounded-2xl"
+                  placeholder="For confirmation"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-3.5 rounded-full inline-flex items-center justify-center gap-2"
+              >
+                <Clock className="w-4 h-4" />
+                Send Request
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

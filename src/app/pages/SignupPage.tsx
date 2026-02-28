@@ -7,33 +7,17 @@ import {
   BookOpen,
   Briefcase,
   Users,
-  UserCheck,
-  GraduationCap,
-  MapPin,
-  Languages,
-  Tags,
-  FileText,
 } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { CrisisButton } from "../components/CrisisButton";
 import { motion } from "motion/react";
 import { supabase } from "../../supabaseClient";
-
-const topicOptions = [
-  "Medical Transition",
-  "Coming Out",
-  "Career",
-  "Legal",
-  "Mental Health",
-  "Family Support",
-  "Non-binary Identity",
-  "Documentation",
-];
+import { useLanguage } from "../i18n/LanguageContext";
 
 export function SignupPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
-  const [role, setRole] = useState<"user" | "mentor">("user");
   const [formData, setFormData] = useState({
     chosenName: "",
     pronouns: "",
@@ -42,11 +26,6 @@ export function SignupPage() {
     email: "",
     password: "",
     lookingFor: [] as string[],
-    // Mentor-specific fields
-    city: "",
-    languages: "",
-    topics: [] as string[],
-    bio: "",
   });
 
   const pronounOptions = ["She/Her", "He/Him", "They/Them", "Ze/Hir", "Custom"];
@@ -87,30 +66,15 @@ export function SignupPage() {
     }));
   };
 
-  const handleTopicToggle = (topic: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      topics: prev.topics.includes(topic)
-        ? prev.topics.filter((t) => t !== topic)
-        : [...prev.topics, topic],
-    }));
-  };
-
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
-
-  const totalSteps = role === "mentor" ? 3 : 2;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (step === 1) {
       setStep(2);
-      return;
-    }
-    if (role === "mentor" && step === 2) {
-      setStep(3);
       return;
     }
 
@@ -126,20 +90,9 @@ export function SignupPage() {
       chosen_name: formData.chosenName,
       pronouns: resolvedPronouns,
       identities: formData.identities,
-      role,
+      role: "user",
+      looking_for: formData.lookingFor,
     };
-
-    if (role === "user") {
-      userMetadata.looking_for = formData.lookingFor;
-    } else {
-      userMetadata.city = formData.city;
-      userMetadata.languages = formData.languages
-        .split(",")
-        .map((l) => l.trim())
-        .filter(Boolean);
-      userMetadata.topics = formData.topics;
-      userMetadata.bio = formData.bio;
-    }
 
     const { data, error } = await supabase.auth.signUp({
       email: formData.email,
@@ -162,48 +115,14 @@ export function SignupPage() {
           chosen_name: formData.chosenName,
           pronouns: resolvedPronouns,
           identities: formData.identities,
-          looking_for: role === "user" ? formData.lookingFor : [],
-          role,
+          looking_for: formData.lookingFor,
+          role: "user",
         });
 
       if (profileError) {
         console.warn("Profile upsert failed:", profileError.message);
       }
-
-      if (role === "mentor") {
-        const initials = formData.chosenName
-          .split(" ")
-          .map((w) => w[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2);
-
-        const gradients = [
-          { from: "#f472b6", to: "#7c3aed" },
-          { from: "#7c3aed", to: "#38bdf8" },
-          { from: "#38bdf8", to: "#f472b6" },
-        ];
-        const gradient = gradients[Math.floor(Math.random() * gradients.length)];
-
-        await supabase.from("mentors").insert({
-          name: formData.chosenName,
-          pronouns: resolvedPronouns,
-          city: formData.city,
-          languages: formData.languages
-            .split(",")
-            .map((l) => l.trim())
-            .filter(Boolean),
-          topics: formData.topics,
-          bio: formData.bio,
-          initials,
-          gradientFrom: gradient.from,
-          gradientTo: gradient.to,
-          verified: false,
-          is_verified: false,
-        });
-      }
-
-      navigate(role === "mentor" ? "/mentor-dashboard" : "/dashboard");
+      navigate("/dashboard");
     } else {
       setShowConfirmation(true);
     }
@@ -242,98 +161,16 @@ export function SignupPage() {
             </div>
           ) : (
             <>
-              {/* Role Selector */}
-              <div className="flex gap-3 mb-8">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRole("user");
-                    if (step > 2) setStep(2);
-                  }}
-                  className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all ${
-                    role === "user"
-                      ? "border-[#7c3aed] bg-[#7c3aed]/5"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      role === "user"
-                        ? "bg-[#7c3aed] text-white"
-                        : "bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    <UserCheck className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <p
-                      className={`font-medium text-sm ${
-                        role === "user" ? "text-[#7c3aed]" : "text-[#1e1b4b]"
-                      }`}
-                    >
-                      I'm a User
-                    </p>
-                    <p className="text-xs text-gray-500">Seeking support</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRole("mentor");
-                    if (step > 2) setStep(2);
-                  }}
-                  className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all ${
-                    role === "mentor"
-                      ? "border-[#7c3aed] bg-[#7c3aed]/5"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      role === "mentor"
-                        ? "bg-[#7c3aed] text-white"
-                        : "bg-gray-100 text-gray-400"
-                    }`}
-                  >
-                    <GraduationCap className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <p
-                      className={`font-medium text-sm ${
-                        role === "mentor" ? "text-[#7c3aed]" : "text-[#1e1b4b]"
-                      }`}
-                    >
-                      I'm a Mentor
-                    </p>
-                    <p className="text-xs text-gray-500">Providing guidance</p>
-                  </div>
-                </button>
-              </div>
-
               {/* Header */}
               <div className="text-center mb-8">
                 <h1 className="text-3xl text-[#1e1b4b] mb-2">
-                  {step === 1
-                    ? role === "mentor"
-                      ? "Welcome, Future Mentor"
-                      : "Welcome to TransConnect"
-                    : step === 2
-                      ? role === "mentor"
-                        ? "Your Mentor Profile"
-                        : "Tell Us About You"
-                      : "Almost There"}
+                  {step === 1 ? t("auth.welcomeToTransConnect") : t("auth.tellUsAboutYou")}
                 </h1>
                 <p className="text-gray-600">
-                  {step === 1
-                    ? "Let's get to know you"
-                    : role === "mentor"
-                      ? step === 2
-                        ? "Tell us how you'd like to help"
-                        : "Review and create your account"
-                      : "What are you looking for?"}
+                  {step === 1 ? t("auth.letsGetToKnowYou") : t("auth.whatAreYouLookingFor")}
                 </p>
                 <div className="flex justify-center gap-2 mt-4">
-                  {Array.from({ length: totalSteps }).map((_, i) => (
+                  {Array.from({ length: 2 }).map((_, i) => (
                     <div
                       key={i}
                       className={`h-2 w-16 rounded-full transition-all ${
@@ -478,13 +315,13 @@ export function SignupPage() {
                       type="submit"
                       className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-3.5 rounded-full transition-all shadow-lg"
                     >
-                      Continue
+                      {t("auth.continue")}
                     </button>
                   </div>
                 )}
 
-                {/* STEP 2 (USER): Looking For */}
-                {step === 2 && role === "user" && (
+                {/* STEP 2: Looking For */}
+                {step === 2 && (
                   <div className="space-y-6">
                     <p className="text-gray-600 text-center mb-6">
                       Select all that interest you to personalize your
@@ -524,201 +361,14 @@ export function SignupPage() {
                         onClick={() => setStep(1)}
                         className="flex-1 bg-gray-100 hover:bg-gray-200 text-[#1e1b4b] py-3.5 rounded-full transition-all"
                       >
-                        Back
+                        {t("common.back")}
                       </button>
                       <button
                         type="submit"
                         disabled={loading}
                         className="flex-1 bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 text-white py-3.5 rounded-full transition-all shadow-lg"
                       >
-                        {loading ? "Creating Account..." : "Create Account"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* STEP 2 (MENTOR): Mentor Profile */}
-                {step === 2 && role === "mentor" && (
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-[#1e1b4b] mb-2">
-                        <span className="inline-flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-[#7c3aed]" />
-                          City
-                        </span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.city}
-                        onChange={(e) =>
-                          setFormData({ ...formData, city: e.target.value })
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] bg-white"
-                        placeholder="e.g., Mumbai, Delhi, Bangalore"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[#1e1b4b] mb-2">
-                        <span className="inline-flex items-center gap-2">
-                          <Languages className="w-4 h-4 text-[#7c3aed]" />
-                          Languages (comma-separated)
-                        </span>
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.languages}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            languages: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] bg-white"
-                        placeholder="e.g., Hindi, English, Tamil"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[#1e1b4b] mb-2">
-                        <span className="inline-flex items-center gap-2">
-                          <Tags className="w-4 h-4 text-[#7c3aed]" />
-                          Topics You Can Help With
-                        </span>
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {topicOptions.map((topic) => (
-                          <button
-                            key={topic}
-                            type="button"
-                            onClick={() => handleTopicToggle(topic)}
-                            className={`px-4 py-2 rounded-full text-sm transition-all ${
-                              formData.topics.includes(topic)
-                                ? "bg-[#7c3aed] text-white"
-                                : "bg-gray-100 text-[#1e1b4b] hover:bg-gray-200"
-                            }`}
-                          >
-                            {topic}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[#1e1b4b] mb-2">
-                        <span className="inline-flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-[#7c3aed]" />
-                          Short Bio
-                        </span>
-                      </label>
-                      <textarea
-                        value={formData.bio}
-                        onChange={(e) =>
-                          setFormData({ ...formData, bio: e.target.value })
-                        }
-                        className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] bg-white resize-none"
-                        rows={4}
-                        placeholder="Tell people about yourself and how you can help..."
-                        required
-                      />
-                    </div>
-
-                    <div className="flex gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setStep(1)}
-                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-[#1e1b4b] py-3.5 rounded-full transition-all"
-                      >
-                        Back
-                      </button>
-                      <button
-                        type="submit"
-                        className="flex-1 bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-3.5 rounded-full transition-all shadow-lg"
-                      >
-                        Continue
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* STEP 3 (MENTOR): Review & Submit */}
-                {step === 3 && role === "mentor" && (
-                  <div className="space-y-6">
-                    <div className="bg-gradient-to-br from-[#7c3aed]/5 to-[#38bdf8]/5 rounded-2xl p-6 space-y-4">
-                      <h3 className="text-[#1e1b4b] font-medium">
-                        Review Your Mentor Profile
-                      </h3>
-                      <div className="grid sm:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <p className="text-gray-500">Name</p>
-                          <p className="text-[#1e1b4b]">
-                            {formData.chosenName}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Pronouns</p>
-                          <p className="text-[#1e1b4b]">
-                            {formData.pronouns === "Custom"
-                              ? formData.customPronouns
-                              : formData.pronouns}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">City</p>
-                          <p className="text-[#1e1b4b]">{formData.city}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500">Languages</p>
-                          <p className="text-[#1e1b4b]">
-                            {formData.languages}
-                          </p>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 text-sm">Topics</p>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {formData.topics.map((t) => (
-                            <span
-                              key={t}
-                              className="px-3 py-1 rounded-full text-xs bg-[#7c3aed]/10 text-[#7c3aed]"
-                            >
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <p className="text-gray-500 text-sm">Bio</p>
-                        <p className="text-[#1e1b4b] text-sm">{formData.bio}</p>
-                      </div>
-                    </div>
-
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                      <p className="text-xs text-amber-800">
-                        <strong>Note:</strong> Your mentor profile will be
-                        reviewed by our team before it appears in the directory.
-                        You'll be notified once verified.
-                      </p>
-                    </div>
-
-                    <div className="flex gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setStep(2)}
-                        className="flex-1 bg-gray-100 hover:bg-gray-200 text-[#1e1b4b] py-3.5 rounded-full transition-all"
-                      >
-                        Back
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="flex-1 bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 text-white py-3.5 rounded-full transition-all shadow-lg"
-                      >
-                        {loading
-                          ? "Creating Account..."
-                          : "Create Mentor Account"}
+                        {loading ? t("auth.creatingAccount") : t("auth.createAccount")}
                       </button>
                     </div>
                   </div>
@@ -733,12 +383,12 @@ export function SignupPage() {
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
-                  Already have an account?{" "}
+                  {t("auth.alreadyHaveAccount")}{" "}
                   <Link
                     to="/login"
                     className="text-[#7c3aed] hover:underline"
                   >
-                    Log In
+                    {t("nav.login")}
                   </Link>
                 </p>
               </div>

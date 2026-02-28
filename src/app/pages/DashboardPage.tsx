@@ -1,21 +1,29 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
-import { Search, BookOpen, MessageSquare, Stethoscope, Smile, Meh, Frown, Heart } from "lucide-react";
+import { Search, BookOpen, MessageSquare, Stethoscope, Lightbulb, Sparkles } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { CrisisButton } from "../components/CrisisButton";
 import { MobileBottomNav } from "../components/MobileBottomNav";
 import { motion } from "motion/react";
-import { mentors, resources } from "../data/mockData";
+import { resources } from "../data/mockData";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export function DashboardPage() {
+  const { t } = useLanguage();
   const [userName, setUserName] = useState("Friend");
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const userStorageKey = "astitva_user";
+  const legacyUserStorageKey = "transconnect_user";
 
   useEffect(() => {
-    const user = localStorage.getItem("transconnect_user");
+    const user = localStorage.getItem(userStorageKey) || localStorage.getItem(legacyUserStorageKey);
     if (user) {
       const userData = JSON.parse(user);
       setUserName(userData.name || "Friend");
+      if (!localStorage.getItem(userStorageKey)) {
+        localStorage.setItem(userStorageKey, user);
+        localStorage.removeItem(legacyUserStorageKey);
+      }
     }
   }, []);
 
@@ -27,11 +35,19 @@ export function DashboardPage() {
   ];
 
   const quickActions = [
-    { icon: Search, label: "Find Mentor", link: "/mentors", gradient: "from-[#f472b6] to-[#7c3aed]" },
+    { icon: Search, label: "AI Study Bot", link: "/study-bot", gradient: "from-[#f472b6] to-[#7c3aed]" },
     { icon: BookOpen, label: "Resources", link: "/resources", gradient: "from-[#7c3aed] to-[#38bdf8]" },
-    { icon: MessageSquare, label: "Community", link: "/chat", gradient: "from-[#38bdf8] to-[#f472b6]" },
+    { icon: MessageSquare, label: "Community Chat", link: "/chat", gradient: "from-[#38bdf8] to-[#f472b6]" },
     { icon: Stethoscope, label: "Doctors", link: "/healthcare", gradient: "from-[#f472b6] to-[#38bdf8]" },
   ];
+
+  const studyTip = {
+    title: "Break Big Goals into 25-minute Focus Blocks",
+    description:
+      "Use Pomodoro: 25 minutes deep work, 5 minutes break. Repeat 4 times, then take a longer break.",
+    actionLabel: "Open AI Study Bot",
+    actionLink: "/study-bot",
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20 md:pb-0">
@@ -47,9 +63,9 @@ export function DashboardPage() {
           className="mb-8"
         >
           <h1 className="text-3xl text-[#1e1b4b] mb-2">
-            Welcome home, {userName} 👋
+            {t("dashboard.welcomeHome")} {userName} 👋
           </h1>
-          <p className="text-gray-600">How are you doing today?</p>
+          <p className="text-gray-600">{t("dashboard.howAreYouToday")}</p>
         </motion.div>
 
         {/* Mood Check-in */}
@@ -94,7 +110,7 @@ export function DashboardPage() {
           transition={{ delay: 0.2 }}
           className="mb-8"
         >
-          <h2 className="text-[#1e1b4b] mb-4">Quick Actions</h2>
+          <h2 className="text-[#1e1b4b] mb-4">{t("dashboard.quickActions")}</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
@@ -119,80 +135,50 @@ export function DashboardPage() {
           </div>
         </motion.div>
 
-        {/* Recommended For You */}
+        {/* Today's Study Tip */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-[#1e1b4b]">Recommended For You</h2>
-            <Link to="/mentors" className="text-[#7c3aed] hover:underline text-sm">
-              View All
+            <h2 className="text-[#1e1b4b]">{t("dashboard.studyTip")}</h2>
+            <Link to="/study-bot" className="text-[#7c3aed] hover:underline text-sm">
+              Open Study Bot
             </Link>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Mentor Cards */}
-            {mentors.slice(0, 2).map((mentor, index) => (
-              <motion.div
-                key={mentor.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-                className="bg-white rounded-3xl shadow-lg p-6 hover:shadow-xl transition-all"
-              >
-                <div className="flex items-start gap-4 mb-4">
-                  <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl"
-                    style={{
-                      background: `linear-gradient(135deg, ${mentor.gradientFrom}, ${mentor.gradientTo})`,
-                    }}
-                  >
-                    {mentor.initials}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-[#1e1b4b]">{mentor.name}</h3>
-                      {mentor.verified && (
-                        <span className="text-xs bg-[#7c3aed]/10 text-[#7c3aed] px-2 py-0.5 rounded-full">
-                          Verified
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600">{mentor.pronouns}</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {mentor.topics.slice(0, 2).map((topic) => (
-                    <span key={topic} className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full">
-                      {topic}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-sm text-gray-600 mb-4">
-                  {mentor.languages.join(", ")} • {mentor.city}
-                </p>
-                <Link
-                  to={`/chat/${mentor.id}`}
-                  className="block w-full text-center bg-[#7c3aed] hover:bg-[#6d28d9] text-white py-2.5 rounded-full transition-all"
-                >
-                  Request Chat
-                </Link>
-              </motion.div>
-            ))}
-
-            {/* Trending Resource */}
+          <div className="grid md:grid-cols-2 gap-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="bg-gradient-to-br from-[#f472b6]/10 to-[#38bdf8]/10 rounded-3xl shadow-lg p-6 hover:shadow-xl transition-all"
+              transition={{ delay: 0.5 }}
+              className="bg-gradient-to-br from-[#7c3aed]/10 to-[#38bdf8]/10 rounded-3xl shadow-lg p-6"
+            >
+              <div className="w-12 h-12 bg-[#7c3aed] rounded-2xl flex items-center justify-center mb-4">
+                <Lightbulb className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="text-[#1e1b4b] mb-2">{studyTip.title}</h3>
+              <p className="text-sm text-gray-600 mb-4">{studyTip.description}</p>
+              <Link
+                to={studyTip.actionLink}
+                className="inline-flex items-center gap-2 text-[#7c3aed] hover:underline text-sm"
+              >
+                <Sparkles className="w-4 h-4" />
+                {studyTip.actionLabel}
+              </Link>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="bg-white rounded-3xl shadow-lg p-6 hover:shadow-xl transition-all"
             >
               <div className="w-12 h-12 bg-[#7c3aed] rounded-2xl flex items-center justify-center mb-4">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-[#1e1b4b] mb-2">Trending Article</h3>
+              <h3 className="text-[#1e1b4b] mb-2">Trending Resource</h3>
               <h4 className="text-[#1e1b4b] mb-3">{resources[0].title}</h4>
               <p className="text-sm text-gray-600 mb-4">{resources[0].description}</p>
               <Link

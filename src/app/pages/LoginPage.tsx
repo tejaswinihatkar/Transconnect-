@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { UserCheck, GraduationCap } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { CrisisButton } from "../components/CrisisButton";
 import { motion } from "motion/react";
 import { supabase } from "../../supabaseClient";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [role, setRole] = useState<"user" | "mentor">("user");
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -34,7 +34,7 @@ export function LoginPage() {
           "Your email hasn't been confirmed yet. Please check your inbox for the confirmation link."
         );
       } else {
-        setErrorMsg("Login failed: " + error.message);
+        setErrorMsg(`${t("auth.loginFailed")} ${error.message}`);
       }
       setLoading(false);
       return;
@@ -50,12 +50,11 @@ export function LoginPage() {
           pronouns: meta.pronouns,
           identities: meta.identities,
           looking_for: meta.looking_for,
-          role: meta.role || role,
+          role: "user",
         });
       }
 
-      const profileRole = meta?.role || role;
-      navigate(profileRole === "mentor" ? "/mentor-dashboard" : "/dashboard");
+      navigate("/dashboard");
     } else {
       navigate("/dashboard");
     }
@@ -72,49 +71,15 @@ export function LoginPage() {
           animate={{ opacity: 1, y: 0 }}
           className="w-full bg-white rounded-3xl shadow-xl p-8 lg:p-10"
         >
-          {/* Role Toggle */}
-          <div className="flex gap-2 mb-8 bg-gray-100 rounded-2xl p-1.5">
-            <button
-              type="button"
-              onClick={() => setRole("user")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all ${
-                role === "user"
-                  ? "bg-white text-[#7c3aed] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <UserCheck className="w-4 h-4" />
-              User Login
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole("mentor")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all ${
-                role === "mentor"
-                  ? "bg-white text-[#7c3aed] shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" />
-              Mentor Login
-            </button>
-          </div>
-
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl text-[#1e1b4b] mb-2">
-              {role === "mentor" ? "Welcome Back, Mentor" : "Welcome Back"}
-            </h1>
-            <p className="text-gray-600">
-              {role === "mentor"
-                ? "Log in to manage your mentorship"
-                : "Log in to your safe space"}
-            </p>
+            <h1 className="text-3xl text-[#1e1b4b] mb-2">{t("auth.welcomeBack")}</h1>
+            <p className="text-gray-600">{t("auth.loginSubtitle")}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-[#1e1b4b] mb-2">Email</label>
+              <label className="block text-[#1e1b4b] mb-2">{t("common.email")}</label>
               <input
                 type="email"
                 value={formData.email}
@@ -128,7 +93,7 @@ export function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-[#1e1b4b] mb-2">Password</label>
+              <label className="block text-[#1e1b4b] mb-2">{t("common.password")}</label>
               <input
                 type="password"
                 value={formData.password}
@@ -151,13 +116,13 @@ export function LoginPage() {
                   }
                   className="w-4 h-4 text-[#7c3aed] border-gray-300 rounded focus:ring-[#7c3aed]"
                 />
-                <span className="text-sm text-gray-600">Remember me</span>
+                <span className="text-sm text-gray-600">{t("auth.rememberMe")}</span>
               </label>
               <Link
                 to="/forgot-password"
                 className="text-sm text-[#7c3aed] hover:underline"
               >
-                Forgot Password?
+                {t("auth.forgotPassword")}
               </Link>
             </div>
 
@@ -179,25 +144,21 @@ export function LoginPage() {
               disabled={loading}
               className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 text-white py-3.5 rounded-full transition-all shadow-lg"
             >
-              {loading
-                ? "Logging In..."
-                : role === "mentor"
-                  ? "Log In as Mentor"
-                  : "Log In"}
+              {loading ? t("auth.loggingIn") : t("nav.login")}
             </button>
           </form>
 
           <div className="flex items-center gap-4 my-6">
             <div className="flex-1 h-px bg-gray-200"></div>
-            <span className="text-sm text-gray-500">or</span>
+            <span className="text-sm text-gray-500">{t("common.or")}</span>
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
+              {t("auth.noAccount")}{" "}
               <Link to="/signup" className="text-[#7c3aed] hover:underline">
-                Join TransConnect
+                {t("auth.joinTransConnect")}
               </Link>
             </p>
           </div>

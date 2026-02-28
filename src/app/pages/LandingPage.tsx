@@ -3,8 +3,10 @@ import { Shield, Lock, UserCheck, Heart, MessageSquare, BookOpen, Stethoscope } 
 import { Navbar } from "../components/Navbar";
 import { CrisisButton } from "../components/CrisisButton";
 import { motion } from "motion/react";
+import { useLanguage } from "../i18n/LanguageContext";
 
 export function LandingPage() {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       <Navbar isPublic={true} />
@@ -20,22 +22,21 @@ export function LandingPage() {
             transition={{ duration: 0.6 }}
           >
             <h1 className="text-4xl lg:text-5xl text-[#1e1b4b] mb-6">
-              Your Identity,
+              {t("landing.heroLine1")}
               <br />
               <span className="bg-gradient-to-r from-[#f472b6] to-[#38bdf8] bg-clip-text text-transparent">
-                Your Safe Space
+                {t("landing.heroLine2")}
               </span>
             </h1>
             <p className="text-lg text-gray-600 mb-8">
-              India's verified community for trans individuals. Connect with mentors, access resources, and find
-              support on your journey.
+              {t("landing.heroDesc")}
             </p>
 
             {/* Trust Signals */}
             <div className="flex flex-wrap gap-4 mb-8">
               <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
                 <UserCheck className="w-5 h-5 text-[#7c3aed]" />
-                <span className="text-sm text-[#1e1b4b]">Verified Mentors</span>
+                <span className="text-sm text-[#1e1b4b]">AI Study Support</span>
               </div>
               <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm">
                 <Lock className="w-5 h-5 text-[#7c3aed]" />
@@ -53,13 +54,13 @@ export function LandingPage() {
                 to="/signup"
                 className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white px-8 py-3.5 rounded-full transition-all shadow-lg"
               >
-                Join Community
+                {t("nav.joinCommunity")}
               </Link>
               <Link
                 to="/login"
                 className="bg-white hover:bg-gray-50 text-[#1e1b4b] px-8 py-3.5 rounded-full border border-gray-300 transition-all"
               >
-                Log In
+                {t("nav.login")}
               </Link>
             </div>
           </motion.div>
@@ -88,8 +89,8 @@ export function LandingPage() {
       <section className="bg-white py-16 lg:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl text-[#1e1b4b] mb-4">Everything You Need, All in One Place</h2>
-            <p className="text-gray-600">Comprehensive support for your journey</p>
+            <h2 className="text-3xl text-[#1e1b4b] mb-4">{t("landing.featuresTitle")}</h2>
+            <p className="text-gray-600">{t("landing.featuresSubtitle")}</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -104,9 +105,9 @@ export function LandingPage() {
               <div className="w-12 h-12 bg-[#7c3aed] rounded-2xl flex items-center justify-center mb-4">
                 <Heart className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-[#1e1b4b] mb-2">Find Mentors</h3>
+              <h3 className="text-[#1e1b4b] mb-2">AI Study Bot</h3>
               <p className="text-sm text-gray-600">
-                Connect with verified mentors who understand your journey and can guide you.
+                Ask for exam prep, career guidance, and learning resources with summarized notes.
               </p>
             </motion.div>
 
@@ -172,16 +173,16 @@ export function LandingPage() {
           viewport={{ once: true }}
           className="bg-gradient-to-r from-[#7c3aed] to-[#38bdf8] rounded-3xl p-8 lg:p-12 text-center"
         >
-          <h2 className="text-3xl text-white mb-4">Ready to Begin Your Journey?</h2>
+          <h2 className="text-3xl text-white mb-4">{t("landing.readyTitle")}</h2>
           <p className="text-white/90 mb-8 max-w-2xl mx-auto">
             Join thousands of trans individuals across India who have found support, friendship, and guidance on
-            TransConnect.
+            Astitva.
           </p>
           <Link
             to="/signup"
             className="inline-block bg-white hover:bg-gray-100 text-[#7c3aed] px-8 py-3.5 rounded-full transition-all shadow-lg"
           >
-            Get Started - It's Free
+            {t("landing.getStartedFree")}
           </Link>
         </motion.div>
       </section>
@@ -190,7 +191,7 @@ export function LandingPage() {
       <footer className="bg-[#1e1b4b] text-white py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-sm text-white/80">
-            © 2026 TransConnect. Your identity, your safe space. All communications are encrypted.
+            © 2026 Astitva. Your identity, your safe space. All communications are encrypted.
           </p>
         </div>
       </footer>

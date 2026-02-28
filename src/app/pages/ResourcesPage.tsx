@@ -5,6 +5,7 @@ import { MobileBottomNav } from "../components/MobileBottomNav";
 import { motion } from "motion/react";
 import { resources } from "../data/mockData";
 import { useState } from "react";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const iconMap: Record<string, any> = {
   pill: Pill,
@@ -18,6 +19,7 @@ const iconMap: Record<string, any> = {
 };
 
 export function ResourcesPage() {
+  const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [savedResources, setSavedResources] = useState<string[]>([]);
 
@@ -43,8 +45,8 @@ export function ResourcesPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-3xl text-[#1e1b4b] mb-2">Resource Library</h1>
-          <p className="text-gray-600">Guides, articles, and information to support your journey</p>
+          <h1 className="text-3xl text-[#1e1b4b] mb-2">{t("resources.title")}</h1>
+          <p className="text-gray-600">{t("resources.subtitle")}</p>
         </motion.div>
 
         {/* Categories */}

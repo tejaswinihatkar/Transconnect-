@@ -19,12 +19,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       chosenName,
       pronouns,
       identities,
-      role = "user",
       lookingFor,
-      city,
-      languages,
-      topics,
-      bio,
     } = req.body;
 
     if (!email || !password || !chosenName) {
@@ -39,7 +34,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       email,
       password,
       options: {
-        data: { chosen_name: chosenName, pronouns, identities, role },
+        data: { chosen_name: chosenName, pronouns, identities, role: "user" },
       },
     });
 
@@ -62,58 +57,18 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         chosen_name: chosenName,
         pronouns,
         identities: identities || [],
-        looking_for: role === "user" ? lookingFor || [] : [],
-        role,
+        looking_for: lookingFor || [],
+        role: "user",
       });
 
     if (profileError) {
       console.error("Profile creation failed:", profileError.message);
     }
 
-    // If mentor, create mentors table entry
-    if (role === "mentor") {
-      const initials = chosenName
-        .split(" ")
-        .map((w: string) => w[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-
-      const gradients = [
-        { from: "#f472b6", to: "#7c3aed" },
-        { from: "#7c3aed", to: "#38bdf8" },
-        { from: "#38bdf8", to: "#f472b6" },
-      ];
-      const gradient = gradients[Math.floor(Math.random() * gradients.length)];
-
-      const parsedLanguages = Array.isArray(languages)
-        ? languages
-        : typeof languages === "string"
-          ? languages
-              .split(",")
-              .map((l: string) => l.trim())
-              .filter(Boolean)
-          : [];
-
-      await supabaseAdmin.from("mentors").insert({
-        name: chosenName,
-        pronouns,
-        city: city || "",
-        languages: parsedLanguages,
-        topics: topics || [],
-        bio: bio || "",
-        initials,
-        gradientFrom: gradient.from,
-        gradientTo: gradient.to,
-        verified: false,
-        is_verified: false,
-      });
-    }
-
     const token = generateToken({
       id: authData.user.id,
       email,
-      role,
+      role: "user",
     });
 
     res.status(201).json({
@@ -123,7 +78,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         email,
         chosen_name: chosenName,
         pronouns,
-        role,
+        role: "user",
       },
       requiresEmailConfirmation: !authData.session,
     });
@@ -167,7 +122,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       .eq("id", data.user.id)
       .single();
 
-    const role = profile?.role || data.user.user_metadata?.role || "user";
+    const role = "user";
 
     const token = generateToken({
       id: data.user.id,

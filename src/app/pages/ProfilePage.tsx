@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { LogOut, Save, Shield, User, Mail, Sparkles } from "lucide-react";
+import { Languages, LogOut, Save, Shield, User, Mail, Sparkles } from "lucide-react";
 import { Navbar } from "../components/Navbar";
 import { CrisisButton } from "../components/CrisisButton";
 import { MobileBottomNav } from "../components/MobileBottomNav";
 import { motion } from "motion/react";
 import { supabase } from "../../supabaseClient";
+import { useLanguage } from "../i18n/LanguageContext";
+import { Language } from "../i18n/translations";
 
 interface Profile {
   id: string;
@@ -47,6 +49,7 @@ const lookingForLabels: Record<string, string> = {
 
 export function ProfilePage() {
   const navigate = useNavigate();
+  const { language, setLanguage, t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -116,7 +119,7 @@ export function ProfilePage() {
     } else {
       setProfile({ ...profile, ...formData });
       setEditing(false);
-      setSuccessMsg("Profile updated successfully!");
+      setSuccessMsg(t("profile.updated"));
       setTimeout(() => setSuccessMsg(""), 3000);
     }
 
@@ -164,11 +167,11 @@ export function ProfilePage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
           <div className="text-center py-20">
-            <p className="text-gray-500">Loading profile...</p>
+            <p className="text-gray-500">{t("profile.loading")}</p>
           </div>
         ) : !profile ? (
           <div className="text-center py-20">
-            <p className="text-gray-500">No profile found. Please sign up first.</p>
+            <p className="text-gray-500">{t("profile.notFound")}</p>
           </div>
         ) : (
           <>
@@ -199,7 +202,7 @@ export function ProfilePage() {
                       onClick={() => setEditing(true)}
                       className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-5 py-2.5 rounded-full transition-all text-sm"
                     >
-                      Edit Profile
+                      {t("profile.edit")}
                     </button>
                   ) : (
                     <button
@@ -214,7 +217,7 @@ export function ProfilePage() {
                       }}
                       className="bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-5 py-2.5 rounded-full transition-all text-sm"
                     >
-                      Cancel
+                      {t("profile.cancel")}
                     </button>
                   )}
                 </div>
@@ -243,13 +246,13 @@ export function ProfilePage() {
                 <div className="w-10 h-10 bg-[#7c3aed]/10 rounded-2xl flex items-center justify-center">
                   <User className="w-5 h-5 text-[#7c3aed]" />
                 </div>
-                <h2 className="text-xl text-[#1e1b4b]">Personal Information</h2>
+                <h2 className="text-xl text-[#1e1b4b]">{t("profile.personalInfo")}</h2>
               </div>
 
               <div className="space-y-6">
                 {/* Chosen Name */}
                 <div>
-                  <label className="block text-sm text-gray-500 mb-2">Chosen Name</label>
+                  <label className="block text-sm text-gray-500 mb-2">{t("profile.chosenName")}</label>
                   {editing ? (
                     <input
                       type="text"
@@ -266,7 +269,7 @@ export function ProfilePage() {
 
                 {/* Pronouns */}
                 <div>
-                  <label className="block text-sm text-gray-500 mb-2">Pronouns</label>
+                  <label className="block text-sm text-gray-500 mb-2">{t("profile.pronouns")}</label>
                   {editing ? (
                     <select
                       value={formData.pronouns}
@@ -275,7 +278,7 @@ export function ProfilePage() {
                       }
                       className="w-full px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] bg-white"
                     >
-                      <option value="">Select pronouns</option>
+                      <option value="">{t("profile.pronouns")}</option>
                       {pronounOptions.map((p) => (
                         <option key={p} value={p}>
                           {p}
@@ -290,9 +293,9 @@ export function ProfilePage() {
                 {/* Email (read-only) */}
                 <div>
                   <label className="block text-sm text-gray-500 mb-2">
-                    Email
+                    {t("profile.email")}
                     <span className="ml-2 inline-flex items-center gap-1 text-xs">
-                      <Shield className="w-3 h-3" /> Private
+                      <Shield className="w-3 h-3" /> {t("profile.private")}
                     </span>
                   </label>
                   <p className="text-[#1e1b4b] text-lg">{profile.email}</p>
@@ -311,7 +314,7 @@ export function ProfilePage() {
                 <div className="w-10 h-10 bg-[#f472b6]/10 rounded-2xl flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-[#f472b6]" />
                 </div>
-                <h2 className="text-xl text-[#1e1b4b]">Identity</h2>
+                <h2 className="text-xl text-[#1e1b4b]">{t("profile.identity")}</h2>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -339,7 +342,7 @@ export function ProfilePage() {
                           {identity}
                         </span>
                       ))
-                    : <p className="text-gray-400 text-sm">No identities selected</p>}
+                    : <p className="text-gray-400 text-sm">{t("profile.noIdentities")}</p>}
               </div>
             </motion.div>
 
@@ -354,7 +357,7 @@ export function ProfilePage() {
                 <div className="w-10 h-10 bg-[#38bdf8]/10 rounded-2xl flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-[#38bdf8]" />
                 </div>
-                <h2 className="text-xl text-[#1e1b4b]">Looking For</h2>
+                <h2 className="text-xl text-[#1e1b4b]">{t("profile.lookingFor")}</h2>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -382,7 +385,35 @@ export function ProfilePage() {
                           {lookingForLabels[option] || option}
                         </span>
                       ))
-                    : <p className="text-gray-400 text-sm">Nothing selected yet</p>}
+                    : <p className="text-gray-400 text-sm">{t("profile.noLookingFor")}</p>}
+              </div>
+            </motion.div>
+
+            {/* Settings */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 }}
+              className="bg-white rounded-3xl shadow-lg p-8 mb-6"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-[#7c3aed]/10 rounded-2xl flex items-center justify-center">
+                  <Languages className="w-5 h-5 text-[#7c3aed]" />
+                </div>
+                <h2 className="text-xl text-[#1e1b4b]">{t("profile.settings")}</h2>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-500 mb-2">{t("profile.language")}</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value as Language)}
+                  className="w-full max-w-sm px-4 py-3 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#7c3aed] bg-white"
+                >
+                  <option value="en">{t("language.english")}</option>
+                  <option value="hi">{t("language.hindi")}</option>
+                  <option value="mr">{t("language.marathi")}</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-2">{t("profile.selectLanguage")}</p>
               </div>
             </motion.div>
 
@@ -399,7 +430,7 @@ export function ProfilePage() {
                   className="w-full flex items-center justify-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 text-white py-4 rounded-full transition-all shadow-lg text-lg"
                 >
                   <Save className="w-5 h-5" />
-                  {saving ? "Saving..." : "Save Changes"}
+                  {saving ? t("profile.saving") : t("profile.saveChanges")}
                 </button>
               </motion.div>
             )}
@@ -415,7 +446,7 @@ export function ProfilePage() {
                 className="w-full flex items-center justify-center gap-2 bg-white hover:bg-red-50 text-red-500 border border-red-200 py-4 rounded-full transition-all text-sm"
               >
                 <LogOut className="w-4 h-4" />
-                Sign Out
+                {t("profile.signOut")}
               </button>
             </motion.div>
           </>
